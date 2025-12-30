@@ -31,7 +31,7 @@ A modern, high-performance email management application designed for VC accounts
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/vcemail.git
+   git clone https://github.com/AdnanRailsCraft/vcemail.git
    cd vcemail
    ```
 
@@ -47,21 +47,32 @@ A modern, high-performance email management application designed for VC accounts
    NEXTAUTH_SECRET="your-secret-key"
    NEXTAUTH_URL="http://localhost:3000"
    
+   # Setup Passwords
+   ADMIN_PASSWORD="your-secure-admin-password"
+   GUEST_PASSWORD="your-secure-guest-password"
+   
+   # Guest UI Credentials
+   NEXT_PUBLIC_GUEST_EMAIL="readonly@vcemail.local"
+   NEXT_PUBLIC_GUEST_PASSWORD="your-secure-guest-password"
+   
    # Optional: Email configuration for outgoing mail
    EMAIL_SERVER_HOST="smtp.example.com"
-   EMAIL_SERVER_PORT=587
-   EMAIL_SERVER_USER="user"
-   EMAIL_SERVER_PASSWORD="password"
-   EMAIL_FROM="no-reply@example.com"
+   ...
    ```
 
-4. **Database Initialization**:
+5. **Initialize Database & Passwords**:
    ```bash
+   # Create database tables
    npx prisma db push
+   
+   # Seed sample emails
    npx tsx src/scripts/seedEmails.ts
+   
+   # Set/Update user passwords from .env
+   npx tsx update-passwords.ts
    ```
 
-5. **Start Development Server**:
+6. **Start Development Server**:
    ```bash
    npm run dev
    ```

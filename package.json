@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "db:init": "npx tsx src/scripts/initPasswords.ts",
+    "db:seed": "npx tsx src/scripts/seedEmails.ts",
+    "emails:auto-fetch": "tsx src/scripts/autoFetchEmails.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -40,6 +43,7 @@
     "jsdom": "^27.0.1",
     "prisma": "^6.19.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

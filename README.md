@@ -57,7 +57,21 @@ A modern, high-performance email management application designed for VC accounts
    
    # Optional: Email configuration for outgoing mail
    EMAIL_SERVER_HOST="smtp.example.com"
-   ...
+   EMAIL_SERVER_PORT="587"
+   EMAIL_SERVER_USER="your-email@example.com"
+   EMAIL_SERVER_PASSWORD="your-smtp-password"
+   
+   # IMAP configuration for receiving emails
+   # Required IMAP variables:
+   IMAP_HOST="imap.example.com"
+   IMAP_USER="your-email@example.com"
+   IMAP_PASSWORD="your-imap-password"
+   
+   # Optional IMAP variables (with defaults):
+   IMAP_PORT="993"
+   IMAP_MAILBOX="INBOX"
+   IMAP_MARK_AS_SEEN="false"
+   IMAP_FETCH_LIMIT="50"
    ```
 
 5. **Initialize Database & Passwords**:
@@ -66,10 +80,10 @@ A modern, high-performance email management application designed for VC accounts
    npx prisma db push
    
    # Seed sample emails
-   npx tsx src/scripts/seedEmails.ts
+   npm run db:seed
    
    # Set/Update user passwords from .env
-   npx tsx update-passwords.ts
+   npm run db:init
    ```
 
 6. **Start Development Server**:
@@ -90,8 +104,6 @@ For production deployment on AWS:
 2. Connect to an **Amazon RDS (PostgreSQL)** instance.
 3. Manage secrets with **AWS Secrets Manager**.
 4. Configure **Amazon SES** for reliable email delivery.
-
-Refer to [TECHNICAL_DETAILS.md](./TECHNICAL_DETAILS.md) for a comprehensive deployment guide.
 
 ## 📄 License
 

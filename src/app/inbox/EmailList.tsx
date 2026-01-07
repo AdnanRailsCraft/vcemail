@@ -1,14 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { Email } from "@prisma/client";
+import { useRouter } from "next/navigation";
 import EmailItem from "./EmailItem";
+import { deleteEmail } from "@/actions/emailActions";
 
-export default function EmailList() {
+interface EmailListProps {
+  userRole?: string;
+  refreshTrigger?: number;
+}
+
+export default function EmailList({ userRole, refreshTrigger }: EmailListProps) {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectAll, setSelectAll] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [isDeleting, startTransition] = useTransition();
+  const router = useRouter();
+
+  const isAdmin = userRole === "ADMIN";
 
   // Fetch emails function
   const fetchEmails = useCallback(async () => {
@@ -36,10 +48,92 @@ export default function EmailList() {
     fetchEmails();
   };
 
-  // Initial fetch
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedEmails(new Set(emails.map(email => email.id)));
+    } else {
+      setSelectedEmails(new Set());
+    }
+  };
+
+  const handleSelectEmail = (emailId: string, checked: boolean) => {
+    const newSelected = new Set(selectedEmails);
+    if (checked) {
+      newSelected.add(emailId);
+    } else {
+      newSelected.delete(emailId);
+    }
+    setSelectedEmails(newSelected);
+    setSelectAll(newSelected.size === emails.length && emails.length > 0);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEmails.size === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedEmails.size} email(s)?`)) return;
+
+    startTransition(async () => {
+      const emailIds = Array.from(selectedEmails);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const emailId of emailIds) {
+        try {
+          const result = await deleteEmail(emailId);
+          if (result.success) {
+            successCount++;
+            // Remove from local state immediately
+            setEmails(prev => prev.filter(email => email.id !== emailId));
+          } else {
+            failCount++;
+          }
+        } catch (error: any) {
+          console.error(`Error deleting email ${emailId}:`, error);
+          failCount++;
+        }
+      }
+
+      // Clear selection
+      setSelectedEmails(new Set());
+      setSelectAll(false);
+
+      // Refresh the list
+      await fetchEmails();
+
+      if (failCount > 0) {
+        alert(`Deleted ${successCount} email(s). ${failCount} failed.`);
+      }
+    });
+  };
+
+  const handleEmailDelete = async (emailId: string) => {
+    // Remove from local state immediately for better UX
+    setEmails(prev => prev.filter(email => email.id !== emailId));
+    const newSelected = new Set(selectedEmails);
+    newSelected.delete(emailId);
+    setSelectedEmails(newSelected);
+    if (newSelected.size === 0) {
+      setSelectAll(false);
+    }
+    // Refresh to ensure consistency
+    await fetchEmails();
+  };
+
+  // Initial fetch and on trigger
   useEffect(() => {
     fetchEmails();
-  }, [fetchEmails]);
+  }, [fetchEmails, refreshTrigger]);
+
+  // Update selectAll when emails change
+  useEffect(() => {
+    if (emails.length === 0) {
+      setSelectAll(false);
+      setSelectedEmails(new Set());
+    } else {
+      setSelectAll(selectedEmails.size === emails.length);
+    }
+  }, [emails.length, selectedEmails.size]);
 
   if (loading) {
     return (
@@ -62,12 +156,14 @@ export default function EmailList() {
       <div className="flex flex-col gap-3 p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              checked={selectAll}
-              onChange={(e) => setSelectAll(e.target.checked)}
-            />
+            {isAdmin && (
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                checked={selectAll}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            )}
             <button
               onClick={handleRefresh}
               className="p-2 rounded-full hover:bg-gray-200 text-gray-600"
@@ -77,14 +173,23 @@ export default function EmailList() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0014-7 9 9 0 00-14-7" />
               </svg>
             </button>
-            <button
-              className="p-2 rounded-full hover:bg-gray-200 text-gray-600"
-              title="More actions"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </button>
+            {isAdmin && selectedEmails.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="p-2 rounded-full hover:bg-red-100 text-red-600 disabled:opacity-50"
+                title={`Delete ${selectedEmails.size} selected email(s)`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+            {isAdmin && selectedEmails.size > 0 && (
+              <span className="text-sm text-gray-600">
+                {selectedEmails.size} selected
+              </span>
+            )}
           </div>
         </div>
 
@@ -108,7 +213,14 @@ export default function EmailList() {
             </li>
           ) : (
             emails.map((email) => (
-              <EmailItem key={email.id} email={email} />
+              <EmailItem
+                key={email.id}
+                email={email}
+                userRole={userRole}
+                onDelete={handleEmailDelete}
+                onSelect={handleSelectEmail}
+                isSelected={selectedEmails.has(email.id)}
+              />
             ))
           )}
         </ul>

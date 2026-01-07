@@ -6,7 +6,7 @@ async function updateUserPassword() {
     console.log("Updating read-only user password...");
 
     // Hash the guest password from environment or default
-    const guestPassword = process.env.GUEST_PASSWORD || "guest123";
+    const guestPassword = process.env.GUEST_PASSWORD || "readonly123";
     const hashedPassword = await bcrypt.hash(guestPassword, 12);
 
     // Update the read-only user with the correct password

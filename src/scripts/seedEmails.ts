@@ -34,7 +34,7 @@ export async function seedGuestEmails() {
     });
 
     if (!guestUser) {
-      const guestPassword = process.env.GUEST_PASSWORD || "guest123";
+      const guestPassword = process.env.GUEST_PASSWORD || "readonly123";
       const hashedGuestPassword = await bcrypt.hash(guestPassword, 12);
       guestUser = await db.user.create({
         data: {

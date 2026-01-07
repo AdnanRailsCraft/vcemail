@@ -14,18 +14,10 @@ export default async function EmailDetailPage(props: EmailDetailPageProps) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
 
-  if (!session) {
-    redirect("/auth/login");
-  }
-
-  // Fetch the specific email (sent by the user or addressed to them)
+  // Fetch the specific email
   const email = await db.email.findFirst({
     where: {
       id: params.id,
-      OR: [
-        { senderId: session.user?.id },
-        { to: session.user?.email || "" }
-      ]
     }
   });
 
@@ -51,5 +43,13 @@ export default async function EmailDetailPage(props: EmailDetailPageProps) {
     );
   }
 
-  return <EmailDetailPageContent email={email} userRole={session.user.role} />;
+  if (!email.isRead) {
+    // Mark as read
+    await db.email.update({
+      where: { id: email.id },
+      data: { isRead: true }
+    });
+  }
+
+  return <EmailDetailPageContent email={email} userRole={session?.user?.role} />;
 }

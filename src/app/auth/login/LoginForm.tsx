@@ -33,26 +33,8 @@ export default function LoginForm() {
     }
   };
 
-  const handleGuestLogin = async () => {
-    try {
-      // Use the read-only user credentials for guest login
-      const result = await signIn("credentials", {
-        email: process.env.NEXT_PUBLIC_GUEST_EMAIL || "guest@example.com",
-        password: process.env.NEXT_PUBLIC_GUEST_PASSWORD || "guest123",
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Guest login failed. Please try again.");
-        console.error("Guest login error:", result.error);
-      } else {
-        router.push("/");
-        router.refresh();
-      }
-    } catch (error) {
-      setError("An error occurred during guest login");
-      console.error("Guest login error:", error);
-    }
+  const handleGuestLogin = () => {
+    router.push("/inbox");
   };
 
   return (
@@ -119,7 +101,7 @@ export default function LoginForm() {
           onClick={handleGuestLogin}
           className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          Sign in as Guest (Read-Only)
+          Continue as Guest
         </button>
       </div>
     </form>

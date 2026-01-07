@@ -14,7 +14,7 @@ export default withAuth(
 
     // Only admin users can access compose functionality
     if (pathname.startsWith("/compose") && token.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      return NextResponse.redirect(new URL("/inbox", req.url));
     }
 
     // All authenticated users can access dashboard and inbox
@@ -35,5 +35,5 @@ export default withAuth(
 
 // Define which routes need authentication
 export const config = {
-  matcher: ["/dashboard/:path*", "/inbox/:path*", "/compose/:path*"],
+  matcher: ["/dashboard/:path*", "/compose/:path*"],
 };

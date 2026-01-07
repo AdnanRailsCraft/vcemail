@@ -9,7 +9,7 @@ interface ComposeEmailContentProps {
 }
 
 export default function ComposeEmailContent({ user }: ComposeEmailContentProps) {
-  const [to] = useState("readonly@vcemail.local");
+  const [to, setTo] = useState("readonly@vcemail.local");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -79,7 +79,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
               <p className="text-sm text-gray-700">Announcement</p>
               <h1 className="text-2xl font-semibold text-gray-900">Compose</h1>
               <p className="text-xs text-gray-700 mt-1">
-                Publishes to the guest board (read-only audience).
+                Publishes to the read-only audience.
               </p>
             </div>
             <button
@@ -149,7 +149,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
                   Clear
                 </button>
               </div>
-              <p className="text-xs text-gray-800">Guests cannot reply or forward.</p>
+              <p className="text-xs text-gray-800">Read-only users cannot reply or forward.</p>
             </div>
           </form>
         </div>

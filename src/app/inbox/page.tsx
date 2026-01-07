@@ -6,9 +6,5 @@ import InboxPageContent from "./InboxPageContent";
 export default async function InboxPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session) {
-    redirect("/auth/login");
-  }
-
-  return <InboxPageContent user={session.user} />;
+  return <InboxPageContent user={session?.user} />;
 }

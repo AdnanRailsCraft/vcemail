@@ -1,7 +1,7 @@
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, memo, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Email } from "@prisma/client";
+import { Email } from "@/types/email";
 import { toggleStar, deleteEmail } from "@/actions/emailActions";
 
 interface EmailItemProps {
@@ -12,7 +12,7 @@ interface EmailItemProps {
   isSelected?: boolean;
 }
 
-export default function EmailItem({ email, userRole, onDelete, onSelect, isSelected = false }: EmailItemProps) {
+function EmailItem({ email, userRole, onDelete, onSelect, isSelected = false }: EmailItemProps) {
   const [mounted, setMounted] = useState(false);
   const [isStarred, setIsStarred] = useState(email.isStarred);
   const [isPending, startTransition] = useTransition();
@@ -74,30 +74,34 @@ export default function EmailItem({ email, userRole, onDelete, onSelect, isSelec
 
   const isAdmin = userRole === "ADMIN";
 
-  const formatDate = (dateString: Date) => {
+  // Memoize computed values
+  const formattedDate = useMemo(() => {
     if (!mounted) return "";
-    const date = new Date(dateString);
+    const date = new Date(email.sentAt);
     return date.toLocaleString([], { month: "short", day: "numeric" });
-  };
+  }, [email.sentAt, mounted]);
 
-  // Truncate the subject if it's too long
-  const truncateSubject = (subject: string, maxLength: number = 60) => {
-    if (subject.length <= maxLength) return subject;
-    return subject.substring(0, maxLength) + "...";
-  };
+  const truncatedSubject = useMemo(() => {
+    const maxLength = 60;
+    if (email.subject.length <= maxLength) return email.subject;
+    return email.subject.substring(0, maxLength) + "...";
+  }, [email.subject]);
 
-  // Truncate the body if it exists
-  const truncateBody = (body: string | null, maxLength: number = 100) => {
-    if (!body) return "";
-    if (body.length <= maxLength) return body;
-    return body.substring(0, maxLength) + "...";
-  };
+  const truncatedBody = useMemo(() => {
+    const maxLength = 100;
+    if (!email.bodyText) return "";
+    if (email.bodyText.length <= maxLength) return email.bodyText;
+    return email.bodyText.substring(0, maxLength) + "...";
+  }, [email.bodyText]);
 
-  // Extract sender name from email address
-  const getSenderName = (emailAddress: string) => {
-    const name = emailAddress.split('@')[0];
+  const senderName = useMemo(() => {
+    const name = email.from.split('@')[0];
     return name.charAt(0).toUpperCase() + name.slice(1);
-  };
+  }, [email.from]);
+
+  const senderInitial = useMemo(() => {
+    return senderName.charAt(0);
+  }, [senderName]);
 
   return (
     <li className="hover:bg-gray-50 transition-colors relative group">
@@ -140,22 +144,22 @@ export default function EmailItem({ email, userRole, onDelete, onSelect, isSelec
             )}
           </button>
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-            {getSenderName(email.from).charAt(0)}
+            {senderInitial}
           </div>
           <Link href={`/inbox/${email.id}`} className="block min-w-0" onClick={(e) => e.stopPropagation()}>
             <p className={`truncate text-sm ${email.isRead ? "text-gray-700" : "font-semibold text-gray-900"}`}>
-              {getSenderName(email.from)}
+              {senderName}
             </p>
           </Link>
         </div>
 
         <Link href={`/inbox/${email.id}`} className="flex-1 flex flex-col sm:flex-row sm:items-center sm:space-x-2 min-w-0" onClick={(e) => e.stopPropagation()}>
           <p className={`truncate text-sm ${email.isRead ? "text-gray-900" : "font-semibold text-gray-900"}`}>
-            {truncateSubject(email.subject)}
+            {truncatedSubject}
           </p>
           <p className="truncate text-sm text-gray-500">
             <span className="hidden sm:inline">- </span>
-            {truncateBody(email.bodyText)}
+            {truncatedBody}
           </p>
         </Link>
 
@@ -178,7 +182,7 @@ export default function EmailItem({ email, userRole, onDelete, onSelect, isSelec
           )}
           <Link href={`/inbox/${email.id}`} className="block" onClick={(e) => e.stopPropagation()}>
             <p className="text-[10px] sm:text-xs text-gray-500">
-              {formatDate(email.sentAt)}
+              {formattedDate}
             </p>
           </Link>
         </div>
@@ -186,3 +190,6 @@ export default function EmailItem({ email, userRole, onDelete, onSelect, isSelec
     </li>
   );
 }
+
+// Memoize EmailItem to prevent unnecessary re-renders
+export default memo(EmailItem);

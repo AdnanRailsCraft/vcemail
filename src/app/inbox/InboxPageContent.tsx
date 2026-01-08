@@ -52,9 +52,11 @@ export default function InboxPageContent({ user }: InboxPageContentProps) {
     }
   };
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount (non-blocking)
   useEffect(() => {
+    // Don't block initial render - fetch in background
     handleFetchEmails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="min-h-screen bg-gray-100">

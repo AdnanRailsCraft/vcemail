@@ -14,26 +14,17 @@ async function fetchEmails() {
     console.log("");
 
     const emailService = new EmailService();
-    
+
     // Fetch emails using environment variables
-    const result = await emailService.fetchEmailsFromIMAP();
+    const emails = await emailService.fetchEmailsFromIMAP();
 
     console.log("");
     console.log("=".repeat(50));
     console.log(`Email fetch completed!`);
-    console.log(`Fetched: ${result.fetched} new email(s)`);
-    
-    if (result.errors.length > 0) {
-      console.log(`Errors: ${result.errors.length}`);
-      result.errors.forEach((error, index) => {
-        console.log(`  ${index + 1}. ${error}`);
-      });
-    } else {
-      console.log("No errors occurred.");
-    }
+    console.log(`Found: ${emails.length} email(s)`);
     console.log("=".repeat(50));
 
-    process.exit(result.errors.length > 0 && result.fetched === 0 ? 1 : 0);
+    process.exit(0);
   } catch (error: any) {
     console.error("Fatal error fetching emails:", error);
     process.exit(1);

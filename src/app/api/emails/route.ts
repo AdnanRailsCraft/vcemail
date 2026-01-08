@@ -15,7 +15,7 @@ export async function GET() {
       return Response.json({ emails: guestEmails });
     }
 
-    const emails = await emailService.getUserEmails(session.user.id, session.user.email);
+    const emails = await emailService.getUserEmails(session.user.id);
 
     return Response.json({ emails });
   } catch (error) {
@@ -51,11 +51,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const emailService = new EmailService();
-    const result = await emailService.deleteEmails(
-      emailIds,
-      session.user.id,
-      session.user.email
-    );
+    const result = await emailService.deleteEmails(emailIds);
 
     return Response.json({
       success: true,

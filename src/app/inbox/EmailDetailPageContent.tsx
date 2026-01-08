@@ -3,12 +3,13 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Email, UserRole } from "@prisma/client";
+import { Email } from "@/types/email";
 import { deleteEmail, toggleReadStatus } from "@/actions/emailActions";
+import DOMPurify from "dompurify";
 
 interface EmailDetailPageContentProps {
   email: Email;
-  userRole?: UserRole;
+  userRole?: string;
 }
 
 export default function EmailDetailPageContent({ email, userRole }: EmailDetailPageContentProps) {
@@ -95,7 +96,7 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
                       <path d="M4 5h12v2H4V5zm3-2h6v2H7V3z" />
                     </svg>
                   </button>
-                  
+
                 </>
               )}
               <span className="text-xs text-gray-500 hidden sm:inline">{formatDate(email.sentAt)}</span>
@@ -142,7 +143,12 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
               {email.bodyHtml ? (
                 <div
                   className="text-gray-900"
-                  dangerouslySetInnerHTML={{ __html: email.bodyHtml }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(email.bodyHtml, {
+                      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span'],
+                      ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+                    })
+                  }}
                 />
               ) : (
                 <p className="whitespace-pre-line text-gray-900">{email.bodyText}</p>

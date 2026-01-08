@@ -10,10 +10,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
     const emailService = new EmailService();
-    const email = await emailService.getEmailById(id, session?.user?.id || "", session?.user?.email);
+    const email = await emailService.getEmailById(id);
 
     if (!email) {
       return Response.json({ error: "Email not found" }, { status: 404 });
@@ -47,12 +45,12 @@ export async function DELETE(
     }
 
     const emailService = new EmailService();
-    const result = await emailService.deleteEmail(id, session.user.id, session.user.email);
+    const result = await emailService.deleteEmail(id);
 
     if (!result.success) {
       return Response.json(
         { error: result.error || "Failed to delete email" },
-        { status: result.notFound ? 404 : 500 }
+        { status: 500 }
       );
     }
 

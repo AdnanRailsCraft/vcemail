@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from "react";
-import { Email } from "@prisma/client";
+import { Email } from "@/types/email";
 import { useRouter } from "next/navigation";
 import EmailItem from "./EmailItem";
 import { deleteEmail } from "@/actions/emailActions";
@@ -35,7 +35,7 @@ export default function EmailList({ userRole, refreshTrigger }: EmailListProps) 
         throw new Error(data.error || "Failed to fetch emails");
       }
 
-      setEmails(data.emails || data.emails);
+      setEmails(data.emails || []);
     } catch (err) {
       console.error("Error fetching emails:", err);
       setError(err instanceof Error ? err.message : "Failed to load emails");
@@ -75,40 +75,44 @@ export default function EmailList({ userRole, refreshTrigger }: EmailListProps) 
 
     startTransition(async () => {
       const emailIds = Array.from(selectedEmails);
+      const emailIdsSet = new Set(emailIds);
+      
+      // Optimistically remove from UI immediately
+      setEmails(prev => prev.filter(email => !emailIdsSet.has(email.id)));
+      setSelectedEmails(new Set());
+      setSelectAll(false);
+
+      // Delete in background
       let successCount = 0;
       let failCount = 0;
+      const failedIds: string[] = [];
 
       for (const emailId of emailIds) {
         try {
           const result = await deleteEmail(emailId);
           if (result.success) {
             successCount++;
-            // Remove from local state immediately
-            setEmails(prev => prev.filter(email => email.id !== emailId));
           } else {
             failCount++;
+            failedIds.push(emailId);
           }
         } catch (error: any) {
           console.error(`Error deleting email ${emailId}:`, error);
           failCount++;
+          failedIds.push(emailId);
         }
       }
 
-      // Clear selection
-      setSelectedEmails(new Set());
-      setSelectAll(false);
-
-      // Refresh the list
-      await fetchEmails();
-
+      // If some deletions failed, restore those emails and refresh
       if (failCount > 0) {
+        await fetchEmails();
         alert(`Deleted ${successCount} email(s). ${failCount} failed.`);
       }
     });
   };
 
   const handleEmailDelete = async (emailId: string) => {
-    // Remove from local state immediately for better UX
+    // Optimistically remove from local state immediately for better UX
     setEmails(prev => prev.filter(email => email.id !== emailId));
     const newSelected = new Set(selectedEmails);
     newSelected.delete(emailId);
@@ -116,14 +120,14 @@ export default function EmailList({ userRole, refreshTrigger }: EmailListProps) 
     if (newSelected.size === 0) {
       setSelectAll(false);
     }
-    // Refresh to ensure consistency
-    await fetchEmails();
+    // No need to refetch - the delete action already handles cache invalidation
   };
 
   // Initial fetch and on trigger
   useEffect(() => {
     fetchEmails();
-  }, [fetchEmails, refreshTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   // Update selectAll when emails change
   useEffect(() => {

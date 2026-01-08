@@ -23,39 +23,17 @@ export async function POST(req: NextRequest) {
 
     const emailService = new EmailService();
 
-    // Optional: Allow custom IMAP config via request body
+    // Optional: Allow custom limit via request body
     const body = await req.json().catch(() => ({}));
-    const options = {
-      host: body.host,
-      port: body.port,
-      user: body.user,
-      password: body.password,
-      mailbox: body.mailbox,
-      markAsSeen: body.markAsSeen,
-      limit: body.limit,
-    };
+    const limit = body.limit;
 
     // Fetch emails from IMAP
-    const result = await emailService.fetchEmailsFromIMAP(
-      Object.keys(options).length > 0 ? options : undefined
-    );
-
-    if (result.errors.length > 0 && result.fetched === 0) {
-      return Response.json(
-        {
-          success: false,
-          error: "Failed to fetch emails",
-          details: result.errors,
-        },
-        { status: 500 }
-      );
-    }
+    const emails = await emailService.fetchEmailsFromIMAP({ limit });
 
     return Response.json({
       success: true,
-      fetched: result.fetched,
-      errors: result.errors.length > 0 ? result.errors : undefined,
-      message: `Successfully fetched ${result.fetched} new email(s)`,
+      fetched: emails.length,
+      message: `Successfully fetched ${emails.length} email(s)`,
     });
   } catch (error: any) {
     console.error("Error fetching emails from IMAP:", error);

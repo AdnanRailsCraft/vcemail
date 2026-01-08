@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/auth";
-import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { EmailService } from "@/services/emailService";
 import EmailDetailPageContent from "../EmailDetailPageContent";
 
 interface EmailDetailPageProps {
@@ -13,13 +12,10 @@ interface EmailDetailPageProps {
 export default async function EmailDetailPage(props: EmailDetailPageProps) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
+  const emailService = new EmailService();
 
   // Fetch the specific email
-  const email = await db.email.findFirst({
-    where: {
-      id: params.id,
-    }
-  });
+  const email = await emailService.getEmailById(params.id);
 
   if (!email) {
     return (
@@ -44,11 +40,8 @@ export default async function EmailDetailPage(props: EmailDetailPageProps) {
   }
 
   if (!email.isRead) {
-    // Mark as read
-    await db.email.update({
-      where: { id: email.id },
-      data: { isRead: true }
-    });
+    // Mark as read in IMAP
+    await emailService.toggleReadStatus(email.id, true);
   }
 
   return <EmailDetailPageContent email={email} userRole={session?.user?.role} />;

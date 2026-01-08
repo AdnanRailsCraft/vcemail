@@ -135,7 +135,7 @@ export class EmailService {
     const mailbox = options?.mailbox || process.env.IMAP_MAILBOX || "INBOX";
     const limit = options?.limit || parseInt(process.env.IMAP_FETCH_LIMIT || "50");
 
-    let connection;
+    let connection: any;
     try {
       connection = await this.getImapConnection();
       await connection.openBox(mailbox);
@@ -191,7 +191,7 @@ export class EmailService {
             attachments: parsedEmail.attachments?.map((att: any) => `${att.filename || "unnamed"}:${att.size || 0}`).join(",") || null,
             sentAt: parsedEmail.date || new Date(),
             receivedAt: message.attributes.date || new Date(),
-            size: (parsedEmail.text?.length || 0) + (parsedEmail.html?.length || 0),
+            size: (typeof parsedEmail.text === 'string' ? parsedEmail.text.length : 0) + (typeof parsedEmail.html === 'string' ? parsedEmail.html.length : 0),
             headers: JSON.stringify(parsedEmail.headers),
             isRead: flags.includes("\\Seen"),
             isStarred: flags.includes("\\Flagged"),
@@ -316,7 +316,7 @@ export class EmailService {
     });
 
     const results = await Promise.all(deletePromises);
-    
+
     const errors: string[] = [];
     let success = 0;
     let failed = 0;

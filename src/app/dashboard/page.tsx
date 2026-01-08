@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/auth";
 import { redirect } from "next/navigation";
 import DashboardPageContent from "./DashboardPageContent";
-import { db } from "@/lib/db";
+import { EmailService } from "@/services/emailService";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -11,12 +11,10 @@ export default async function DashboardPage() {
     redirect("/auth/login");
   }
 
-  // Get user's email stats
-  const emailCount = await db.email.count({
-    where: {
-      senderId: session.user?.id
-    }
-  });
+  // Get email count from IMAP
+  const emailService = new EmailService();
+  const emails = await emailService.fetchEmailsFromIMAP();
+  const emailCount = emails.length;
 
   return (
     <DashboardPageContent

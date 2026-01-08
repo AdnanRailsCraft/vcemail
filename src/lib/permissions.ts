@@ -12,8 +12,10 @@ export function isReadOnly(user: User | undefined): boolean {
 
 // Check if user can perform an action based on their role
 export function canPerformAction(user: User | undefined, action: string): boolean {
+  if (action === "fetch_email") return true;
+
   if (!user) return false;
-  
+
   switch (action) {
     case "send_email":
       return isAdmin(user);

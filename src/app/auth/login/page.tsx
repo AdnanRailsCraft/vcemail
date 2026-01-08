@@ -7,10 +7,7 @@ export default async function LoginPage() {
   const session = await getServerSession(authOptions);
 
   if (session) {
-    if (session.user?.role === "READ_ONLY") {
-      redirect("/inbox");
-    }
-    redirect("/dashboard");
+    redirect("/inbox");
   }
 
   return (

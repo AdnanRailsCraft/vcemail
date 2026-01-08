@@ -1,98 +1,89 @@
 # VC Email System
 
-A modern, high-performance email management application designed for VC accounts, built with Next.js, Prisma, and Tailwind CSS.
+A modern, IMAP-backed inbox built with Next.js 16 (App Router) and React 19. It fetches mail directly from your IMAP server, caches results for quick reloads, and lets admins send and delete mail while guests browse read-only.
 
 ## 🚀 Features
 
-- **Intuitive Inbox**: A Gmail-like interface with smooth transitions and real-time updates.
-- **Role-Based Access**: Specialized views for `ADMIN` (full control) and `READ_ONLY` (guest/view-only) users.
-- **Secure Authentication**: Built with NextAuth.js, featuring secure session management and role enforcement.
-- **Email Management**: Star, archive, delete (Admin only), and search functionalities.
-- **Dark Mode & Responsiveness**: Fully optimized for all screen sizes, from mobile to desktop.
-- **Modern Tech Stack**: Leveraging Next.js 16, React 19, and Tailwind CSS 4.
+- **IMAP Inbox**: Fetches and parses recent mail; 60s shared cache to avoid repeat IMAP hits.
+- **Fast Fetching**: Parallel message parsing and parallel bulk deletes for snappier operations.
+- **Role-Based Access**: `ADMIN` can fetch, send, star, mark read/unread, and delete; `READ_ONLY` can browse and star/read.
+- **Optimistic UI**: Inbox updates instantly for deletes and starring; auto-refresh on mount.
+- **Compose (Admin)**: Sends via SMTP with Nodemailer; falls back to JSON transport when SMTP is absent.
+- **NextAuth Credentials**: Environment-driven admin/guest accounts; JWT sessions.
+- **Responsive UI**: Tailwind CSS 4 styling; works great on mobile and desktop.
 
 ## 🛠 Tech Stack
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
-- **Frontend**: [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/)
-- **Database**: [Prisma](https://www.prisma.io/) with SQLite (local) / PostgreSQL (production)
-- **Auth**: [NextAuth.js v4](https://next-auth.js.org/)
-- **Utility**: [Zod](https://zod.dev/), [Nodemailer](https://nodemailer.com/)
-- **Testing**: [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/)
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, Tailwind CSS 4
+- **Auth**: NextAuth.js (credentials/JWT)
+- **Mail**: imap-simple + mailparser (IMAP), Nodemailer (SMTP)
+- **State & Perf**: React server actions, shared in-memory IMAP cache (60s), memoized list items
+- **Testing**: Vitest, Playwright
 
 ## 🏁 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18+
+- npm
 
 ### Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/AdnanRailsCraft/vcemail.git
-   cd vcemail
-   ```
+1) **Clone & install**
+```bash
+git clone https://github.com/AdnanRailsCraft/vcemail.git
+cd vcemail
+npm install
+```
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+2) **Environment variables** — create `.env` in the repo root:
+```env
+NEXTAUTH_SECRET="change-me"
+NEXTAUTH_URL="http://localhost:3000"
 
-3. **Environment Setup**:
-   Create a `.env` file in the root directory:
-   ```env
-   DATABASE_URL="file:./dev.db"
-   NEXTAUTH_SECRET="your-secret-key"
-   NEXTAUTH_URL="http://localhost:3000"
-   
-   # Setup Passwords
-   ADMIN_PASSWORD="your-secure-admin-password"
-   GUEST_PASSWORD="your-secure-guest-password"
-   
-   # Guest UI Credentials
-   NEXT_PUBLIC_GUEST_EMAIL="readonly@vcemail.local"
-   NEXT_PUBLIC_GUEST_PASSWORD="your-secure-guest-password"
-   
-   # Optional: Email configuration for outgoing mail
-   EMAIL_SERVER_HOST="smtp.example.com"
-   ...
-   ```
+# Admin account (defaults admin email to IMAP_USER if not set)
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="your-admin-password"
 
-5. **Initialize Database & Passwords**:
-   ```bash
-   # Create database tables
-   npx prisma db push
-   
-   # Seed sample emails
-   npx tsx src/scripts/seedEmails.ts
-   
-   # Set/Update user passwords from .env
-   npx tsx update-passwords.ts
-   ```
+# Guest account (read-only)
+NEXT_PUBLIC_GUEST_EMAIL="guest@example.com"
+GUEST_PASSWORD="your-guest-password"
+NEXT_PUBLIC_GUEST_PASSWORD="your-guest-password"
 
-6. **Start Development Server**:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) to see the result.
+# IMAP (required for inbox)
+IMAP_HOST="imap.example.com"
+IMAP_USER="your-imap-user@example.com"
+IMAP_PASSWORD="your-imap-password"
+# Optional IMAP tuning
+IMAP_PORT="993"
+IMAP_MAILBOX="INBOX"
+IMAP_MARK_AS_SEEN="false"
+IMAP_FETCH_LIMIT="50"
+
+# SMTP (optional for sending mail; falls back to JSON transport when omitted)
+EMAIL_SERVER_HOST="smtp.example.com"
+EMAIL_SERVER_PORT="587"
+EMAIL_SERVER_USER="your-smtp-user@example.com"
+EMAIL_SERVER_PASSWORD="your-smtp-password"
+```
+
+3) **Run the app**
+```bash
+npm run dev
+```
+Visit http://localhost:3000 and sign in with the admin or guest credentials above.
 
 ## 🧪 Testing
 
-- **Unit Tests**: `npm run test`
-- **E2E Tests**: `npm run test:e2e`
+- Unit tests: `npm run test`
+- E2E tests: `npm run test:e2e`
 
-## 📦 Deployment (AWS)
+## ℹ️ Notes
 
-For production deployment on AWS:
-1. Use **AWS App Runner** or **ECS Fargate** for containerized hosting.
-2. Connect to an **Amazon RDS (PostgreSQL)** instance.
-3. Manage secrets with **AWS Secrets Manager**.
-4. Configure **Amazon SES** for reliable email delivery.
-
-Refer to [TECHNICAL_DETAILS.md](./TECHNICAL_DETAILS.md) for a comprehensive deployment guide.
+- No database required; everything is fetched directly from IMAP and cached in memory for 60 seconds.
+- Admin-only actions: compose, delete, bulk delete. Both roles can toggle star/read where permitted by IMAP flags.
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License.

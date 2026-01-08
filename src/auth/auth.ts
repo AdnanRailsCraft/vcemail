@@ -1,55 +1,52 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
-import { db } from "@/lib/db";
 
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(db) as any,
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "select", options: ["ADMIN", "READ_ONLY"] }
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email }
-        });
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.IMAP_USER;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const guestEmail = process.env.NEXT_PUBLIC_GUEST_EMAIL;
+        const guestPassword = process.env.GUEST_PASSWORD || process.env.NEXT_PUBLIC_GUEST_PASSWORD;
 
-        if (!user || !user.password) {
-          return null;
+        // Admin login
+        if (credentials.email === adminEmail && credentials.password === adminPassword) {
+          return {
+            id: "admin",
+            email: adminEmail,
+            name: "Admin User",
+            role: "ADMIN"
+          };
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isValid) {
-          return null;
+        // Guest login
+        if (credentials.email === guestEmail && credentials.password === guestPassword) {
+          return {
+            id: "guest",
+            email: guestEmail,
+            name: "Guest User",
+            role: "READ_ONLY"
+          };
         }
 
-        if (!user.isActive) {
-          throw new Error("User account is deactivated");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        };
+        return null;
       }
     })
   ],
   callbacks: {
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      if (session.user) {
+        session.user.id = token.sub as string;
         session.user.role = token.role as "ADMIN" | "READ_ONLY";
       }
       return session;
@@ -57,7 +54,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
-        token.role = user.role;
+        token.role = (user as any).role;
       }
       return token;
     }

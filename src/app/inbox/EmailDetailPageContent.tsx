@@ -1,20 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { Email, UserRole } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import { Email } from "@/types/email";
+import { deleteEmail, toggleReadStatus } from "@/actions/emailActions";
+import DOMPurify from "dompurify";
 
 interface EmailDetailPageContentProps {
   email: Email;
-  userRole?: UserRole;
+  userRole?: string;
 }
 
 export default function EmailDetailPageContent({ email, userRole }: EmailDetailPageContentProps) {
   const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this email?")) return;
+
+    startTransition(async () => {
+      const result = await deleteEmail(email.id);
+      if (result.success) {
+        router.push("/inbox");
+      } else {
+        alert(result.error);
+      }
+    });
+  };
+
+  const handleToggleRead = async () => {
+    startTransition(async () => {
+      const result = await toggleReadStatus(email.id, !email.isRead);
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert(result.error);
+      }
+    });
+  };
+
 
   const formatDate = (dateString: Date) => {
     if (!mounted) return "";
@@ -55,23 +85,18 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
             <div className="flex items-center space-x-2 text-gray-600">
               {isAdmin && (
                 <>
-                  <button className="p-2 rounded-full hover:bg-gray-200" title="Archive">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M3.5 3A1.5 1.5 0 002 4.5V6h16V4.5A1.5 1.5 0 0016.5 3h-13zM18 8H2v6.5A1.5 1.5 0 003.5 16h13a1.5 1.5 0 001.5-1.5V8z" />
-                      <path d="M8 10h4v2H8v-2z" />
-                    </svg>
-                  </button>
-                  <button className="p-2 rounded-full hover:bg-gray-200" title="Delete">
+                  <button
+                    className="p-2 rounded-full hover:bg-gray-200 disabled:opacity-50"
+                    title="Delete"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                  >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M6 7a1 1 0 011 1v7a1 1 0 11-2 0V8a1 1 0 011-1zm4 1a1 1 0 00-2 0v7a1 1 0 002 0V8zm3-1a1 1 0 011 1v7a1 1 0 11-2 0V8a1 1 0 011-1z" clipRule="evenodd" />
                       <path d="M4 5h12v2H4V5zm3-2h6v2H7V3z" />
                     </svg>
                   </button>
-                  <button className="p-2 rounded-full hover:bg-gray-200" title="Mark as unread">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 3a1 1 0 00-.553.168l-7 4.5A1 1 0 002 8.5V15a2 2 0 002 2h12a2 2 0 002-2V8.5a1 1 0 00-.447-.832l-7-4.5A1 1 0 0010 3z" />
-                    </svg>
-                  </button>
+
                 </>
               )}
               <span className="text-xs text-gray-500 hidden sm:inline">{formatDate(email.sentAt)}</span>
@@ -118,7 +143,12 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
               {email.bodyHtml ? (
                 <div
                   className="text-gray-900"
-                  dangerouslySetInnerHTML={{ __html: email.bodyHtml }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(email.bodyHtml, {
+                      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span'],
+                      ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+                    })
+                  }}
                 />
               ) : (
                 <p className="whitespace-pre-line text-gray-900">{email.bodyText}</p>

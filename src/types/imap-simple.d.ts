@@ -47,3 +47,4 @@ declare module 'imap-simple' {
   export function getParts(struct: any): Part[];
 }
 
+

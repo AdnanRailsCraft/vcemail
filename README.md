@@ -63,10 +63,44 @@ IMAP_FETCH_LIMIT="50"
 
 # SMTP (optional for sending mail; falls back to JSON transport when omitted)
 EMAIL_SERVER_HOST="smtp.example.com"
-EMAIL_SERVER_PORT="587"
+EMAIL_SERVER_PORT="587"  # Use 465 for SSL/TLS, 587 for STARTTLS
 EMAIL_SERVER_USER="your-smtp-user@example.com"
 EMAIL_SERVER_PASSWORD="your-smtp-password"
+# Optional: Set to "true" to reject unauthorized certificates (default: false)
+EMAIL_SERVER_REJECT_UNAUTHORIZED="false"
 ```
+
+### SMTP Configuration Examples
+
+**Gmail:**
+```env
+EMAIL_SERVER_HOST="smtp.gmail.com"
+EMAIL_SERVER_PORT="587"
+EMAIL_SERVER_USER="your-email@gmail.com"
+EMAIL_SERVER_PASSWORD="your-app-password"  # Use App Password, not regular password
+```
+
+**Outlook/Hotmail:**
+```env
+EMAIL_SERVER_HOST="smtp-mail.outlook.com"
+EMAIL_SERVER_PORT="587"
+EMAIL_SERVER_USER="your-email@outlook.com"
+EMAIL_SERVER_PASSWORD="your-password"
+```
+
+**Custom SMTP with SSL:**
+```env
+EMAIL_SERVER_HOST="smtp.example.com"
+EMAIL_SERVER_PORT="465"  # SSL/TLS port
+EMAIL_SERVER_USER="your-email@example.com"
+EMAIL_SERVER_PASSWORD="your-password"
+```
+
+**Note:** The SMTP implementation automatically:
+- Uses SSL/TLS for port 465
+- Uses STARTTLS for port 587
+- Verifies connection before sending
+- Provides detailed error messages for troubleshooting
 
 3) **Run the app**
 ```bash

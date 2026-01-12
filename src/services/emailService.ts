@@ -22,26 +22,85 @@ interface EmailCache {
 let globalEmailCache: EmailCache | null = null;
 const CACHE_TTL = 60000; // 60 seconds
 
+// Shared transporter across all instances
+let globalTransporter: Transporter | null = null;
+let globalSmtpConfigured: boolean = false;
+
 export class EmailService {
   private transporter: Transporter;
+  private smtpConfigured: boolean = false;
 
   constructor() {
+    // Return existing transporter if already initialized
+    if (globalTransporter) {
+      this.transporter = globalTransporter;
+      this.smtpConfigured = globalSmtpConfigured;
+      return;
+    }
+
     // Initialize the transporter with email server configuration
     if (process.env.EMAIL_SERVER_HOST) {
+      const port = parseInt(process.env.EMAIL_SERVER_PORT || "587");
+      const secure = port === 465; // Port 465 uses SSL/TLS, port 587 uses STARTTLS
+
       this.transporter = createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
-        secure: false, // true for 465, false for other ports
+        port: port,
+        secure: secure, // true for 465, false for other ports (STARTTLS)
+        requireTLS: !secure && port === 587, // Require TLS for port 587
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
         },
+        tls: {
+          // Do not fail on invalid certificates (useful for self-signed certs)
+          rejectUnauthorized: process.env.EMAIL_SERVER_REJECT_UNAUTHORIZED !== "true",
+        },
+        // Connection timeout
+        connectionTimeout: 10000, // 10 seconds
+        // Greeting timeout
+        greetingTimeout: 5000, // 5 seconds
+        // Socket timeout
+        socketTimeout: 10000, // 10 seconds
+        pool: true, // Use pooled connections
+        maxConnections: 5, // Limit max connections
+        maxMessages: 100, // Limit messages per connection
+      });
+
+      this.smtpConfigured = true;
+
+      // Verify SMTP connection on startup (non-blocking)
+      this.verifyConnection().catch((error) => {
+        console.warn("SMTP connection verification failed (will retry on send):", error.message);
       });
     } else {
       console.warn("No email server configuration found. Using JSON transport (logging emails to console).");
       this.transporter = createTransport({
         jsonTransport: true,
       });
+      this.smtpConfigured = false;
+    }
+
+    // Save to global scope
+    globalTransporter = this.transporter;
+    globalSmtpConfigured = this.smtpConfigured;
+  }
+
+  /**
+   * Verify SMTP connection
+   */
+  private async verifyConnection(): Promise<boolean> {
+    if (!this.smtpConfigured) {
+      return false;
+    }
+
+    try {
+      await this.transporter.verify();
+      console.log("SMTP connection verified successfully");
+      return true;
+    } catch (error: any) {
+      console.error("SMTP verification failed:", error.message);
+      throw error;
     }
   }
 
@@ -66,8 +125,45 @@ export class EmailService {
   }
 
   async sendEmail(params: SendEmailParams, userId: string): Promise<Email> {
+    // Validate required parameters
+    if (!params.from || !params.to || !params.subject) {
+      throw new Error("Missing required email parameters: from, to, and subject are required");
+    }
+
+    // Validate email addresses
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(params.from)) {
+      throw new Error("Invalid sender email address");
+    }
+
+    const recipients = [params.to, params.cc, params.bcc]
+      .filter(Boolean)
+      .join(",")
+      .split(",")
+      .map(email => email.trim());
+
+    for (const recipient of recipients) {
+      if (recipient && !emailRegex.test(recipient)) {
+        throw new Error(`Invalid recipient email address: ${recipient}`);
+      }
+    }
+
+    // Ensure we have either text or HTML content
+    if (!params.text && !params.html) {
+      throw new Error("Email must have either text or HTML content");
+    }
+
     try {
       let info: any = { messageId: `mock-${Date.now()}` };
+
+      // If SMTP is configured, verify connection before sending
+      if (this.smtpConfigured) {
+        try {
+          await this.verifyConnection();
+        } catch (verifyError: any) {
+          console.warn("SMTP verification failed, attempting to send anyway:", verifyError.message);
+        }
+      }
 
       try {
         // Send the email
@@ -79,9 +175,31 @@ export class EmailService {
           subject: params.subject,
           text: params.text,
           html: params.html,
+          // Add headers for better email deliverability
+          headers: {
+            "X-Mailer": "VC Email System",
+            "X-Priority": "3",
+          },
+        });
+
+        console.log("Email sent successfully:", {
+          messageId: info.messageId,
+          to: params.to,
+          subject: params.subject,
         });
       } catch (sendError: any) {
-        console.warn("Failed to send email via transport:", sendError.message);
+        console.error("Failed to send email via transport:", sendError.message);
+
+        // Provide more specific error messages
+        if (sendError.code === "EAUTH") {
+          throw new Error("SMTP authentication failed. Please check your email credentials.");
+        } else if (sendError.code === "ECONNECTION") {
+          throw new Error("Failed to connect to SMTP server. Please check your SMTP host and port.");
+        } else if (sendError.code === "ETIMEDOUT") {
+          throw new Error("SMTP connection timed out. Please check your network connection.");
+        } else {
+          throw new Error(`Failed to send email: ${sendError.message}`);
+        }
       }
 
       // Return a mock email object since we're not saving to DB
@@ -105,8 +223,12 @@ export class EmailService {
         labels: null,
         senderId: userId,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending email:", error);
+      // Re-throw with the original error message if it's already a user-friendly error
+      if (error.message && error.message.startsWith("SMTP") || error.message.startsWith("Failed to send") || error.message.startsWith("Missing") || error.message.startsWith("Invalid")) {
+        throw error;
+      }
       throw new Error("Failed to send email");
     }
   }

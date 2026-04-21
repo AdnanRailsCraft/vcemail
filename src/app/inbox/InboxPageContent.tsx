@@ -117,22 +117,20 @@ export default function InboxPageContent({ user }: InboxPageContentProps) {
                 </>
               )}
             </button>
-            {user?.role === "ADMIN" && (
-              <Link
-                href="/compose"
-                className="inline-flex flex-shrink-0 items-center px-4 py-2 rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm"
+            <Link
+              href="/compose"
+              className="inline-flex flex-shrink-0 items-center px-4 py-2 rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                </svg>
-                Compose
-              </Link>
-            )}
+                <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+              </svg>
+              Compose
+            </Link>
             {user ? (
               <button
                 onClick={() => signOut({ callbackUrl: "/auth/login" })}

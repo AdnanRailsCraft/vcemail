@@ -1,8 +1,8 @@
 "use client";
 
 import { User } from "next-auth";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface ComposeEmailContentProps {
   user: User;
@@ -14,27 +14,57 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
+  const [recentRecipients, setRecentRecipients] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const router = useRouter();
 
-  // Check if user has permission to compose emails
-  if (user?.role !== "ADMIN") {
-    return (
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-red-800">Access Denied</h3>
-          <p className="mt-1 max-w-2xl text-sm text-red-600">You don't have permission to compose emails.</p>
-          <div className="mt-4">
-            <a
-              href="/inbox"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Back to Inbox
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const toParam = searchParams.get("to");
+    const subjectParam = searchParams.get("subject");
+
+    if (toParam) setTo(toParam);
+    if (subjectParam) setSubject(subjectParam);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem("vcemail_recent_recipients");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentRecipients(parsed.filter((v) => typeof v === "string"));
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  const saveRecipientToHistory = (recipient: string) => {
+    if (typeof window === "undefined") return;
+
+    const normalized = recipient.trim();
+    if (!normalized) return;
+
+    // Simple email validation to avoid saving junk
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(normalized)) return;
+
+    setRecentRecipients((prev) => {
+      const existing = prev.filter((r) => r.toLowerCase() !== normalized.toLowerCase());
+      const updated = [normalized, ...existing].slice(0, 20);
+      try {
+        window.localStorage.setItem("vcemail_recent_recipients", JSON.stringify(updated));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return updated;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +87,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
       const result = await response.json();
 
       if (response.ok) {
+        saveRecipientToHistory(to);
         router.push("/inbox");
         router.refresh();
       } else {
@@ -102,14 +133,52 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
               <label className="text-xs font-medium text-gray-800 uppercase tracking-wide">
                 To
               </label>
-              <input
-                type="text"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                required
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                placeholder="recipient@example.com"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={to}
+                  onChange={(e) => {
+                    setTo(e.target.value);
+                    if (!showSuggestions) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => {
+                    // Slight delay so clicks on suggestions still register
+                    setTimeout(() => setShowSuggestions(false), 120);
+                  }}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  placeholder="recipient@example.com"
+                  autoComplete="off"
+                />
+                {showSuggestions && recentRecipients.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto text-sm">
+                    {recentRecipients
+                      .filter((recipient) =>
+                        to
+                          ? recipient.toLowerCase().includes(to.toLowerCase())
+                          : true
+                      )
+                      .slice(0, 10)
+                      .map((recipient) => (
+                        <button
+                          type="button"
+                          key={recipient}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 text-gray-800"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setTo(recipient);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          {recipient}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">

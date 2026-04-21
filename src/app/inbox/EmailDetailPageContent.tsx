@@ -125,7 +125,17 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
                   <p className="text-sm font-medium text-gray-900">{getSenderName(email.from)}</p>
                   <p className="text-xs text-gray-500">{email.from}</p>
                 </div>
-                <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600" title="Reply">
+                <button
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                  title="Reply"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      to: email.from,
+                      subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`
+                    });
+                    router.push(`/compose?${params.toString()}`);
+                  }}
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4A1 1 0 018.7 6.3L6.414 8.586 17 8.59a3 3 0 013 3v.91a1.5 1.5 0 01-1.5 1.5H7.707z" />
                   </svg>
@@ -157,13 +167,22 @@ export default function EmailDetailPageContent({ email, userRole }: EmailDetailP
           </div>
 
           <div className="px-6 py-4 border-t bg-gray-50 flex flex-wrap justify-end gap-2">
-            <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isAdmin}>
+            <button
+              className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => {
+                const params = new URLSearchParams({
+                  to: email.from,
+                  subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`
+                });
+                router.push(`/compose?${params.toString()}`);
+              }}
+            >
               Reply
             </button>
-            <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isAdmin}>
+            <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
               Forward
             </button>
-            <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isAdmin}>
+            <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
               More
             </button>
           </div>

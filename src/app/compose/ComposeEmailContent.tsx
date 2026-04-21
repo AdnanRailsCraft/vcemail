@@ -9,7 +9,7 @@ interface ComposeEmailContentProps {
 }
 
 export default function ComposeEmailContent({ user }: ComposeEmailContentProps) {
-  const [to, setTo] = useState("readonly@vcemail.local");
+  const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -76,10 +76,10 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
         <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-700">Announcement</p>
+              <p className="text-sm text-gray-700">New Email</p>
               <h1 className="text-2xl font-semibold text-gray-900">Compose</h1>
               <p className="text-xs text-gray-700 mt-1">
-                Publishes to the read-only audience.
+                Send email using SMTP
               </p>
             </div>
             <button
@@ -98,7 +98,19 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
           )}
 
           <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-            <input type="hidden" value={to} readOnly />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-800 uppercase tracking-wide">
+                To
+              </label>
+              <input
+                type="text"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                required
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                placeholder="recipient@example.com"
+              />
+            </div>
 
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-800 uppercase tracking-wide">
@@ -110,7 +122,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
                 onChange={(e) => setSubject(e.target.value)}
                 required
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                placeholder="Announcement subject"
+                placeholder="Email subject"
               />
             </div>
 
@@ -124,7 +136,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
                 required
                 rows={14}
                 className="w-full px-3 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Write your announcement..."
+                placeholder="Write your message..."
               />
             </div>
 
@@ -135,12 +147,12 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
                   disabled={isSending}
                   className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60"
                 >
-                  {isSending ? "Sending..." : "Publish"}
+                  {isSending ? "Sending..." : "Send"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setTo("readonly@vcemail.local");
+                    setTo("");
                     setSubject("");
                     setBody("");
                   }}
@@ -149,7 +161,7 @@ export default function ComposeEmailContent({ user }: ComposeEmailContentProps) 
                   Clear
                 </button>
               </div>
-              <p className="text-xs text-gray-800">Read-only users cannot reply or forward.</p>
+              <p className="text-xs text-gray-800">Send email via SMTP</p>
             </div>
           </form>
         </div>

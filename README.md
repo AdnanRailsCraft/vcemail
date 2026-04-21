@@ -32,14 +32,14 @@ A modern, IMAP-backed inbox built with Next.js 16 (App Router) and React 19. It 
 
 1) **Clone & install**
 ```bash
-git clone https://github.com/AdnanRailsCraft/vcemail.git
+git clone git@github.com:Queuevius/vc-email.git
 cd vcemail
 npm install
 ```
 
 2) **Environment variables** — create `.env` in the repo root:
 ```env
-NEXTAUTH_SECRET="change-me"
+NEXTAUTH_SECRET="YOUR_AUTH_SECRET"
 NEXTAUTH_URL="http://localhost:3000"
 
 # Admin account (defaults admin email to IMAP_USER if not set)
@@ -61,46 +61,29 @@ IMAP_MAILBOX="INBOX"
 IMAP_MARK_AS_SEEN="false"
 IMAP_FETCH_LIMIT="50"
 
-# SMTP (optional for sending mail; falls back to JSON transport when omitted)
+# SMTP (for sending mail; falls back to JSON transport when omitted)
 EMAIL_SERVER_HOST="smtp.example.com"
 EMAIL_SERVER_PORT="587"  # Use 465 for SSL/TLS, 587 for STARTTLS
 EMAIL_SERVER_USER="your-smtp-user@example.com"
 EMAIL_SERVER_PASSWORD="your-smtp-password"
-# Optional: Set to "true" to reject unauthorized certificates (default: false)
-EMAIL_SERVER_REJECT_UNAUTHORIZED="false"
+
+# Outgoing "From" address and display name
+# Note: many SMTP providers require this to match (or be authorized by) EMAIL_SERVER_USER.
+EMAIL_FROM="VC@Needpedia.org"
+EMAIL_FROM_NAME="Volunteer Coordination"
 ```
 
-### SMTP Configuration Examples
+### SMTP Configuration (Optional)
 
-**Gmail:**
-```env
-EMAIL_SERVER_HOST="smtp.gmail.com"
-EMAIL_SERVER_PORT="587"
-EMAIL_SERVER_USER="your-email@gmail.com"
-EMAIL_SERVER_PASSWORD="your-app-password"  # Use App Password, not regular password
-```
+The app supports sending emails via SMTP. If omitted, it falls back to a JSON transport (logs emails to console).
 
-**Outlook/Hotmail:**
-```env
-EMAIL_SERVER_HOST="smtp-mail.outlook.com"
-EMAIL_SERVER_PORT="587"
-EMAIL_SERVER_USER="your-email@outlook.com"
-EMAIL_SERVER_PASSWORD="your-password"
-```
+**Common Providers:**
 
-**Custom SMTP with SSL:**
-```env
-EMAIL_SERVER_HOST="smtp.example.com"
-EMAIL_SERVER_PORT="465"  # SSL/TLS port
-EMAIL_SERVER_USER="your-email@example.com"
-EMAIL_SERVER_PASSWORD="your-password"
-```
+- **Gmail**: `smtp.gmail.com`, Port `587`, User: `email@gmail.com`, Pass: `App Password`
+- **Outlook**: `smtp-mail.outlook.com`, Port `587`, User: `email@outlook.com`, Pass: `password`
+- **Custom (SSL)**: `smtp.example.com`, Port `465`, User: `email@example.com`, Pass: `password`
 
-**Note:** The SMTP implementation automatically:
-- Uses SSL/TLS for port 465
-- Uses STARTTLS for port 587
-- Verifies connection before sending
-- Provides detailed error messages for troubleshooting
+*Note: Port 465 uses SSL/TLS; Port 587 uses STARTTLS.*
 
 3) **Run the app**
 ```bash
@@ -118,6 +101,4 @@ Visit http://localhost:3000 and sign in with the admin or guest credentials abov
 - No database required; everything is fetched directly from IMAP and cached in memory for 60 seconds.
 - Admin-only actions: compose, delete, bulk delete. Both roles can toggle star/read where permitted by IMAP flags.
 
-## 📄 License
 
-MIT License.

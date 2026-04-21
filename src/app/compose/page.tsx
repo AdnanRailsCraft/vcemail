@@ -6,8 +6,8 @@ import ComposeEmailContent from "./ComposeEmailContent";
 export default async function ComposeEmail() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== "ADMIN") {
-    redirect("/inbox");
+  if (!session) {
+    redirect("/auth/login");
   }
 
   return <ComposeEmailContent user={session.user} />;
